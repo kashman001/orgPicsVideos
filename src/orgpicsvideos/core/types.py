@@ -59,6 +59,8 @@ class OperationType(str, Enum):
 
     MKDIR = "mkdir"
     COPY = "copy"
+    MOVE = "move"
+    DELETE = "delete"
 
 
 @dataclass(frozen=True)

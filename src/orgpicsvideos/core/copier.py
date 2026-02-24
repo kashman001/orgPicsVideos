@@ -35,6 +35,14 @@ def execute_plan(
                     raise RuntimeError("Missing source for copy operation")
                 op.destination.parent.mkdir(parents=True, exist_ok=True)
                 shutil.copy2(op.source, op.destination)
+            elif op.op_type == OperationType.MOVE:
+                if op.source is None:
+                    raise RuntimeError("Missing source for move operation")
+                op.destination.parent.mkdir(parents=True, exist_ok=True)
+                shutil.move(op.source, op.destination)
+            elif op.op_type == OperationType.DELETE:
+                if op.destination.exists():
+                    op.destination.unlink()
             else:
                 raise RuntimeError(f"Unsupported operation: {op.op_type}")
         except Exception as exc:  # noqa: BLE001
@@ -53,6 +61,10 @@ def _format_log_line(op: PlannedOperation, success: bool, reason: str) -> str:
     status = "SUCCESS" if success else "FAIL"
     if op.op_type == OperationType.MKDIR:
         detail = f"mkdir {op.destination}"
+    elif op.op_type == OperationType.MOVE:
+        detail = f"move {op.source} -> {op.destination}"
+    elif op.op_type == OperationType.DELETE:
+        detail = f"delete {op.destination}"
     else:
         detail = f"copy {op.source} -> {op.destination}"
     if success:

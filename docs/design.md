@@ -24,7 +24,10 @@
 - Progress bar
 - Live counts: `Files Found (Pics/Videos)` and `Files Copied (Pics/Videos)`
 - Planned structure tree with color-coded new vs existing folders and expandable file lists (skipped files in gray), plus status labels and folder/file icons
-- Execution status tree with per-item state: pending (purple), success (green), failed (red), existing (black)
+- Execution status tree with per-item state: pending (purple), partial (orange), success (green), failed (red), existing (black)
+- Double-click file nodes in either tree to open the file (source or destination when available)
+- Rebuild tool supports optional empty-directory cleanup
+- Cleanup CLI exists for removing small files; GUI integration is a future improvement
 - Log output view
 
 ## Key Decisions

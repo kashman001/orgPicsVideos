@@ -18,18 +18,32 @@ and copies them into an organized destination structure.
 ## 3) File Detection
 - Image extensions: jpg, jpeg, png, gif, bmp, tif, tiff, heic, heif, webp, raw
 - Video extensions: mp4, mov, avi, mkv, m4v, wmv, flv, webm, mpeg, mpg, 3gp
+- Ignore macOS resource-fork sidecar files (names starting with `._`).
 
 ## 4) Timestamp Rules
 - Prefer media capture time (EXIF for images, container metadata for videos).
 - If video metadata is suspicious (newer than file mtime or in the future), ignore it.
-- If video metadata is missing or ignored, prefer file modification time over birthtime.
-- Fallback order for other cases: birthtime -> mtime (Unix) or birthtime -> ctime (Windows).
+- For images without EXIF, prefer mtime over birthtime on Unix-like systems.
+- For videos without reliable metadata, prefer mtime over birthtime.
+- Windows fallback uses ctime as creation time.
 
 ## 5) Copy Behavior
 - Copy files, do not move/delete.
 - Preserve metadata (copy2).
 - If destination filename exists, append _1, _2, ... to avoid overwriting.
 - If a destination file with the same name exists and matches size+mtime, skip as a duplicate.
+
+## 5a) Rebuild Tool
+- Provide a CLI tool to rebuild/normalize an existing destination structure in-place.
+- It scans the destination, computes the correct year/month location for each media file, and moves files as needed.
+- Use the same timestamp rules and duplicate heuristics as the main tool.
+- By default, delete macOS `._` sidecar files (option to keep them).
+- Optional flag to delete empty directories after rebuild.
+- Treat `.DS_Store` and `._*` as ignorable when determining empty directories.
+
+## 5b) Cleanup Tool
+- Provide a CLI tool to delete files smaller than a configurable threshold (default 1KB).
+- Support `--dry-run` to preview deletions.
 
 ## 6) Logging
 - Log file name: <timestamp>.log in the destination root.
@@ -54,10 +68,13 @@ and copies them into an organized destination structure.
 - Execution status tree rooted at destination.
   - Existing directories shown as Black = existing.
   - Pending items shown as Purple = pending.
+  - Partial completion shown as Orange = partial.
   - Updates to Green = success, Red = failed.
+  - Double-click a file to open it.
   - Labels show status; folder/file icons distinguish types.
 - Progress bar for scan and copy phases.
 - Optional Debug Log toggle.
+- Default behavior: delete macOS `._` sidecar files in destination before copy (toggle to keep).
 
 ## 9) Debug Log (Optional)
 - When enabled, write `debug_<timestamp>.log` in destination.

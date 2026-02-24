@@ -35,3 +35,9 @@ Resume is log-based: the latest log is parsed and previously successful copies a
 ## Logs
 - User log: `<timestamp>.log` in destination root.
 - Debug log: `debug_<timestamp>.log` in destination root (optional).
+
+## Rebuild Tool
+Use `orgpicsvideos-rebuild <destination>` to normalize an existing destination in-place using current timestamp rules. Optional `--delete-empty-dirs` removes empty directories after rebuild.
+
+## Cleanup Tool
+Use `orgpicsvideos-cleanup <root> --threshold-kb N` to delete files smaller than a size threshold (default 1KB), useful for removing tiny web assets such as buttons/icons.

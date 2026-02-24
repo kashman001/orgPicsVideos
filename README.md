@@ -26,6 +26,26 @@ pip install -e .
 orgpicsvideos
 ```
 
+## Rebuild Tool
+
+To rebuild/normalize an existing destination structure in-place:
+
+```
+orgpicsvideos-rebuild /path/to/destination
+```
+
+This moves media into the correct year/month folders based on the same timestamp rules.
+
+## Cleanup Tool
+
+To delete files smaller than a size threshold (default 1KB):
+
+```
+orgpicsvideos-cleanup /path/to/root --threshold-kb 1
+```
+
+Use `--dry-run` to preview deletions.
+
 ## User Guide
 
 See `docs/user_guide.md` for the full user guide.
@@ -68,5 +88,5 @@ copy /path/source/img.jpg -> /path/dest/2024/jan/pics/img.jpg [SUCCESS]
 
 ## Notes
 
-- File timestamps prefer media capture time (EXIF for images, container metadata for videos). If video metadata looks suspicious (newer than file mtime or in the future), it is ignored. For videos without reliable metadata, modification time is preferred over birthtime. If unavailable, best-effort creation time is used; on Unix-like systems this falls back to modification time.
+- File timestamps prefer media capture time (EXIF for images, container metadata for videos). If video metadata looks suspicious (newer than file mtime or in the future), it is ignored. For images without EXIF and videos without reliable metadata, modification time is preferred over birthtime on Unix-like systems. On Windows, ctime is used as creation time.
 - Filename collisions are resolved by appending a numeric suffix (`_1`, `_2`, ...).

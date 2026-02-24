@@ -47,6 +47,8 @@ def scan_media(
                         stack.append(Path(entry.path))
                     elif entry.is_file(follow_symlinks=False):
                         path = Path(entry.path)
+                        if path.name.startswith("._"):
+                            continue
                         media_type = detect_media_type(path)
                         if not media_type:
                             continue

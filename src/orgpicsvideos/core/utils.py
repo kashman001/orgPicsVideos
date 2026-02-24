@@ -55,13 +55,13 @@ def get_creation_time(path: Path, media_type: MediaType | None = None) -> dateti
             pass
 
     stat = path.stat()
-    if hasattr(stat, "st_birthtime"):
-        return datetime.fromtimestamp(stat.st_birthtime)
     if sys.platform == "win32":
         return datetime.fromtimestamp(stat.st_ctime)
-    # On Unix-like systems without birthtime, prefer mtime over ctime.
+    # For images without EXIF, prefer mtime over birthtime on Unix-like systems.
     if stat.st_mtime:
         return datetime.fromtimestamp(stat.st_mtime)
+    if hasattr(stat, "st_birthtime"):
+        return datetime.fromtimestamp(stat.st_birthtime)
     return datetime.fromtimestamp(stat.st_ctime)
 
 

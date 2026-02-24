@@ -16,6 +16,7 @@ from orgpicsvideos.core.logger import (
     make_log_path,
 )
 from orgpicsvideos.core.planner import build_plan
+from orgpicsvideos.core.rebuild import build_sidecar_delete_ops
 from orgpicsvideos.core.scanner import scan_media
 from orgpicsvideos.core.types import Plan
 from orgpicsvideos.core.validator import ValidationError, validate_paths
@@ -226,6 +227,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.resume_check.setChecked(False)
         self.debug_check = QtWidgets.QCheckBox("Enable debug log")
         self.debug_check.setChecked(False)
+        self.keep_sidecars_check = QtWidgets.QCheckBox("Keep macOS ._ sidecar files")
+        self.keep_sidecars_check.setChecked(False)
 
         self.stats_label = QtWidgets.QLabel(
             "Ready. Source must exist; destination can be selected or created."
@@ -241,13 +244,18 @@ class MainWindow(QtWidgets.QMainWindow):
         self.structure_view.setHeaderLabels(["Planned Structure"])
         self.structure_view.setColumnCount(1)
         self.structure_view.itemExpanded.connect(self._on_tree_expanded)
+        self.structure_view.itemDoubleClicked.connect(self._on_item_double_clicked)
         self.exec_legend_label = QtWidgets.QLabel(
-            "Execution Legend: Purple = pending, Green = success, Red = failed, Black = existing"
+            "Execution Legend: Purple = pending, Orange = partial, Green = success, Red = failed, Black = existing"
         )
         self.execution_view = QtWidgets.QTreeWidget()
         self.execution_view.setHeaderLabels(["Execution Status"])
         self.execution_view.setColumnCount(1)
+        self.execution_view.itemDoubleClicked.connect(self._on_item_double_clicked)
         self._execution_node_map: dict[Path, QtWidgets.QTreeWidgetItem] = {}
+        self._execution_dir_totals: dict[Path, int] = {}
+        self._execution_dir_done: dict[Path, int] = {}
+        self._execution_dir_failed: set[Path] = set()
         self.progress = QtWidgets.QProgressBar()
         self.progress.setValue(0)
 
@@ -263,6 +271,7 @@ class MainWindow(QtWidgets.QMainWindow):
         controls.addWidget(self.copy_btn)
         controls.addWidget(self.resume_check)
         controls.addWidget(self.debug_check)
+        controls.addWidget(self.keep_sidecars_check)
         controls.addStretch(1)
 
         layout = QtWidgets.QVBoxLayout()
@@ -422,7 +431,27 @@ class MainWindow(QtWidgets.QMainWindow):
         if self.debug_check.isChecked():
             self._append_debug("phase=copy_requested")
         debug_path = self._current_debug_path if self.debug_check.isChecked() else None
-        worker = CopyWorker(self.plan, source, destination, debug_path=debug_path)
+        plan = self.plan
+        if not self.keep_sidecars_check.isChecked():
+            sidecar_ops = build_sidecar_delete_ops(destination)
+            if sidecar_ops:
+                # Prepend delete ops so destination is cleaned before copy.
+                plan = Plan(
+                    operations=sidecar_ops + plan.operations,
+                    directories=plan.directories,
+                    skipped_files=plan.skipped_files,
+                    total_files=plan.total_files,
+                    total_dirs=plan.total_dirs,
+                    total_images=plan.total_images,
+                    total_videos=plan.total_videos,
+                    total_found=plan.total_found,
+                    total_skipped=plan.total_skipped,
+                    skipped_resume=plan.skipped_resume,
+                    skipped_duplicates=plan.skipped_duplicates,
+                    scan_duration_seconds=plan.scan_duration_seconds,
+                    resume_enabled=plan.resume_enabled,
+                )
+        worker = CopyWorker(plan, source, destination, debug_path=debug_path)
         thread = QtCore.QThread(self)
         self._copy_thread = thread
         self._copy_worker = worker
@@ -478,6 +507,7 @@ class MainWindow(QtWidgets.QMainWindow):
         self.dest_btn.setEnabled(not busy)
         self.resume_check.setEnabled(not busy)
         self.debug_check.setEnabled(not busy)
+        self.keep_sidecars_check.setEnabled(not busy)
         if busy:
             self.progress.setRange(0, 0)
         self.stats_label.setText(status)
@@ -525,6 +555,9 @@ class MainWindow(QtWidgets.QMainWindow):
     def _on_op_status(self, op_type: str, dest: str, success: bool) -> None:
         path = Path(dest)
         item = self._execution_node_map.get(path)
+        if op_type == "mkdir":
+            self._update_dir_status(path, success)
+            return
         if not item:
             return
         if item.data(0, QtCore.Qt.UserRole + 1) is True:
@@ -536,6 +569,8 @@ class MainWindow(QtWidgets.QMainWindow):
         color = QtGui.QColor("#1f9d4c") if success else QtGui.QColor("#d33")
         item.setForeground(0, QtGui.QBrush(color))
         item.setToolTip(0, str(path))
+        if op_type == "copy":
+            self._update_dir_progress(path.parent, success)
 
     def _populate_structure_tree(self, plan: Plan, destination_root: Path | None) -> None:
         # Planned structure tree is a static preview: existing/new/skip status.
@@ -586,6 +621,8 @@ class MainWindow(QtWidgets.QMainWindow):
             file_item = QtWidgets.QTreeWidgetItem([f"{op.destination.name} (copy)"])
             file_item.setToolTip(0, str(op.destination))
             file_item.setData(0, QtCore.Qt.UserRole, "file")
+            file_item.setData(0, QtCore.Qt.UserRole + 2, str(op.source))
+            file_item.setData(0, QtCore.Qt.UserRole + 3, str(op.destination))
             file_item.setForeground(0, QtGui.QBrush(QtGui.QColor("#2b6cff")))
             file_item.setIcon(0, self._file_icon())
             parent.addChild(file_item)
@@ -603,6 +640,8 @@ class MainWindow(QtWidgets.QMainWindow):
             file_item = QtWidgets.QTreeWidgetItem([label])
             file_item.setToolTip(0, str(skipped.destination))
             file_item.setData(0, QtCore.Qt.UserRole, "skipped")
+            file_item.setData(0, QtCore.Qt.UserRole + 2, str(skipped.source))
+            file_item.setData(0, QtCore.Qt.UserRole + 3, str(skipped.destination))
             file_item.setForeground(0, QtGui.QBrush(QtGui.QColor("#777")))
             file_item.setIcon(0, self._file_icon())
             parent.addChild(file_item)
@@ -643,6 +682,9 @@ class MainWindow(QtWidgets.QMainWindow):
         # Execution tree mirrors planned work and updates live as operations finish.
         self.execution_view.clear()
         self._execution_node_map.clear()
+        self._execution_dir_totals.clear()
+        self._execution_dir_done.clear()
+        self._execution_dir_failed.clear()
         if not destination_root:
             return
 
@@ -652,6 +694,11 @@ class MainWindow(QtWidgets.QMainWindow):
         self.execution_view.addTopLevelItem(root_item)
 
         node_map: dict[tuple[str, ...], QtWidgets.QTreeWidgetItem] = {(): root_item}
+        copy_sources: dict[Path, Path] = {}
+        for op in plan.operations:
+            if op.op_type.value == "copy" and op.source:
+                copy_sources[op.destination] = op.source
+                self._increment_dir_totals(op.destination.parent, destination_root)
         for planned_dir in plan.directories:
             try:
                 relative = planned_dir.path.relative_to(destination_root)
@@ -670,7 +717,10 @@ class MainWindow(QtWidgets.QMainWindow):
                 full_path = destination_root.joinpath(*key)
                 node.setData(0, QtCore.Qt.UserRole, "dir")
                 node.setToolTip(0, str(full_path))
-                status = "existing" if full_path.exists() else "pending"
+                if self._execution_dir_totals.get(full_path, 0) == 0 and full_path.exists():
+                    status = "existing"
+                else:
+                    status = "pending"
                 self._set_execution_status(node, full_path, status, is_dir=True)
 
         for op in plan.operations:
@@ -689,6 +739,9 @@ class MainWindow(QtWidgets.QMainWindow):
                 continue
             file_item = QtWidgets.QTreeWidgetItem([op.destination.name])
             parent.addChild(file_item)
+            file_item.setData(0, QtCore.Qt.UserRole, "file")
+            file_item.setData(0, QtCore.Qt.UserRole + 2, str(op.source))
+            file_item.setData(0, QtCore.Qt.UserRole + 3, str(op.destination))
             self._set_execution_status(file_item, op.destination, "pending", is_dir=False)
 
         root_item.setExpanded(True)
@@ -701,12 +754,14 @@ class MainWindow(QtWidgets.QMainWindow):
         is_dir: bool,
     ) -> None:
         # Execution tree status mapping:
-        # pending (purple), success (green), failed (red), existing (black).
+        # pending (purple), partial (orange), success (green), failed (red), existing (black).
         base_name = item.text(0).split(" (", 1)[0]
         item.setText(0, f"{base_name} ({status})")
         item.setToolTip(0, str(path))
         if status == "pending":
             color = QtGui.QColor("#7a3df0")
+        elif status == "partial":
+            color = QtGui.QColor("#f08c2e")
         elif status == "success":
             color = QtGui.QColor("#1f9d4c")
         elif status == "existing":
@@ -717,6 +772,103 @@ class MainWindow(QtWidgets.QMainWindow):
         item.setForeground(0, QtGui.QBrush(color))
         item.setIcon(0, self._folder_icon() if is_dir else self._file_icon())
         self._execution_node_map[path] = item
+
+    def _increment_dir_totals(self, path: Path, root: Path) -> None:
+        current = path
+        while True:
+            self._execution_dir_totals[current] = self._execution_dir_totals.get(current, 0) + 1
+            if current == root:
+                break
+            current = current.parent
+            try:
+                current.relative_to(root)
+            except ValueError:
+                break
+
+    def _update_dir_progress(self, path: Path, success: bool) -> None:
+        if not self._last_destination:
+            return
+        current = path
+        while True:
+            if success:
+                self._execution_dir_done[current] = self._execution_dir_done.get(current, 0) + 1
+            else:
+                self._execution_dir_failed.add(current)
+            self._refresh_dir_status(current)
+            if current == self._last_destination:
+                break
+            current = current.parent
+            try:
+                current.relative_to(self._last_destination)
+            except ValueError:
+                break
+
+    def _refresh_dir_status(self, path: Path) -> None:
+        item = self._execution_node_map.get(path)
+        if not item or item.data(0, QtCore.Qt.UserRole + 1) is True:
+            return
+        total = self._execution_dir_totals.get(path, 0)
+        done = self._execution_dir_done.get(path, 0)
+        failed = path in self._execution_dir_failed
+        if total == 0 and path.exists():
+            status = "existing"
+        elif failed:
+            status = "failed"
+        elif done == 0:
+            status = "pending"
+        elif done < total:
+            status = "partial"
+        else:
+            status = "success"
+        self._set_execution_status(item, path, status, is_dir=True)
+
+    def _update_dir_status(self, path: Path, success: bool) -> None:
+        if not self._last_destination:
+            return
+        current = path
+        while True:
+            if not success:
+                self._execution_dir_failed.add(current)
+            self._refresh_dir_status(current)
+            if current == self._last_destination:
+                break
+            current = current.parent
+            try:
+                current.relative_to(self._last_destination)
+            except ValueError:
+                break
+
+    def _on_item_double_clicked(self, item: QtWidgets.QTreeWidgetItem) -> None:
+        role = item.data(0, QtCore.Qt.UserRole)
+        if role not in {"file", "skipped"}:
+            return
+        source_text = item.data(0, QtCore.Qt.UserRole + 2)
+        dest_text = item.data(0, QtCore.Qt.UserRole + 3)
+        open_path = None
+        if dest_text:
+            dest = Path(dest_text)
+            if dest.exists():
+                open_path = dest
+        if open_path is None and source_text:
+            open_path = Path(source_text)
+        if open_path and open_path.exists():
+            QtGui.QDesktopServices.openUrl(QtCore.QUrl.fromLocalFile(str(open_path)))
+    def _update_dir_status(self, path: Path, success: bool) -> None:
+        if not self._last_destination:
+            return
+        status = "success" if success else "failed"
+        current = path
+        while True:
+            item = self._execution_node_map.get(current)
+            if item and item.data(0, QtCore.Qt.UserRole + 1) is not True:
+                self._set_execution_status(item, current, status, is_dir=True)
+            if current == self._last_destination:
+                break
+            try:
+                current = current.parent
+                current.relative_to(self._last_destination)
+            except ValueError:
+                break
 
     def _load_resume_destinations(self, source: Path, destination: Path) -> set[Path]:
         if not self.resume_check.isChecked():
