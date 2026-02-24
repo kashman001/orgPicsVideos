@@ -1,0 +1,2 @@
+[console_scripts]
+orgpicsvideos = orgpicsvideos.__main__:main

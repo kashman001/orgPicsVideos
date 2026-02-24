@@ -1,0 +1,24 @@
+[project]
+name = "orgpicsvideos"
+version = "0.1.0"
+description = "Cross-platform GUI tool to organize photos and videos by year/month."
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "Kashif" }]
+dependencies = [
+  "PySide6>=6.5",
+]
+
+[project.scripts]
+orgpicsvideos = "orgpicsvideos.__main__:main"
+
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
