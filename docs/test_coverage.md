@@ -19,3 +19,6 @@
 - Add optional Qt smoke tests using pytest-qt for UI interactions.
 - Add a large synthetic fixture set for performance profiling (not for CI).
 - Extend CI matrix to include macOS and Windows runners.
+
+## UI Tests
+- UI tests are marked with `@pytest.mark.ui` and run separately in CI.
