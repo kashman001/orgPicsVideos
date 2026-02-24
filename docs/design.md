@@ -23,6 +23,8 @@
 - Status line with summary
 - Progress bar
 - Live counts: `Files Found (Pics/Videos)` and `Files Copied (Pics/Videos)`
+- Planned structure tree with color-coded new vs existing folders and expandable file lists (skipped files in gray), plus status labels and folder/file icons
+- Execution status tree with per-item state: pending (purple), success (green), failed (red), existing (black)
 - Log output view
 
 ## Key Decisions
@@ -31,6 +33,7 @@
 - **Background worker threads** to keep the UI responsive.
 - **Plan-based execution** so the user can review counts before copying.
 - **Timestamped logs** to make each run auditable.
+- **Duplicate heuristic** (size+mtime) to skip obvious repeats.
 - **On-demand directory creation** to avoid empty folders.
 
 ## File Organization

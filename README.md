@@ -30,6 +30,32 @@ orgpicsvideos
 
 See `docs/user_guide.md` for the full user guide.
 
+## Overview
+
+See `docs/overview.md` for a concise system overview and flow.
+
+## Tests
+
+Install test dependencies:
+
+```
+pip install -e .[test]
+```
+
+Run tests:
+
+```
+pytest
+```
+
+Make targets:
+
+```
+make test-unit
+make test-ui
+```
+
+See `docs/test_coverage.md` for coverage notes and gaps.
 ## Log format
 
 A log file named `<timestamp>.log` is written under the destination directory. The first line states the source and destination, followed by one line per directory creation or copy operation:
@@ -42,5 +68,5 @@ copy /path/source/img.jpg -> /path/dest/2024/jan/pics/img.jpg [SUCCESS]
 
 ## Notes
 
-- File timestamps are based on best-effort creation time. If creation time is unavailable, metadata change time or modification time is used.
+- File timestamps prefer media capture time (EXIF for images, container metadata for videos). If video metadata looks suspicious (newer than file mtime or in the future), it is ignored. For videos without reliable metadata, modification time is preferred over birthtime. If unavailable, best-effort creation time is used; on Unix-like systems this falls back to modification time.
 - Filename collisions are resolved by appending a numeric suffix (`_1`, `_2`, ...).

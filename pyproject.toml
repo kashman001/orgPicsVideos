@@ -8,6 +8,8 @@ license = { text = "MIT" }
 authors = [{ name = "Kashif" }]
 dependencies = [
   "PySide6>=6.5",
+  "Pillow>=10.0",
+  "hachoir>=3.1",
 ]
 
 [project.scripts]
@@ -22,3 +24,6 @@ package-dir = {"" = "src"}
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[project.optional-dependencies]
+test = ["pytest>=8.0", "pytest-qt>=4.2"]

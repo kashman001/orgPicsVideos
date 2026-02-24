@@ -61,6 +61,8 @@ def load_successful_destinations(
 ) -> set[Path]:
     """Parse a log file and return destination paths with SUCCESS status."""
 
+    # Resume is based on the most recent log; only trust logs that match the
+    # current source and destination header to avoid cross-run confusion.
     destinations: set[Path] = set()
     try:
         with log_path.open("r", encoding="utf-8") as handle:

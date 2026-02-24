@@ -5,8 +5,17 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Iterable
 
-from .types import MediaFile, MediaType, OperationType, Plan, PlannedOperation
-from .utils import split_media_dirs, unique_path
+from .types import (
+    MediaFile,
+    MediaType,
+    OperationType,
+    Plan,
+    PlannedDirectory,
+    PlannedOperation,
+    SkipReason,
+    SkippedFile,
+)
+from .utils import is_probable_duplicate, split_media_dirs, unique_path
 
 
 def build_plan(
@@ -16,6 +25,8 @@ def build_plan(
 ) -> Plan:
     """Create a copy plan for the provided media files."""
 
+    # Copy operations are planned after we compute the target directory and
+    # resolve filename collisions. Skipped files are tracked for UI visibility.
     skip_destinations = skip_destinations or set()
     copy_ops: list[PlannedOperation] = []
     mkdirs: set[Path] = set()
@@ -25,6 +36,10 @@ def build_plan(
     total_files = 0
     total_found = 0
     total_skipped = 0
+    skipped_resume = 0
+    skipped_duplicates = 0
+    # Track skipped files so the UI can render them in the planned tree.
+    skipped_files: list[SkippedFile] = []
 
     for media in media_files:
         total_found += 1
@@ -36,10 +51,33 @@ def build_plan(
         if target_dir not in mkdirs:
             mkdirs.add(target_dir)
 
-        destination = unique_path(target_dir / media.path.name, taken_paths)
-        if destination in skip_destinations:
+        base_destination = target_dir / media.path.name
+        # Skip files already copied in a prior run (resume mode).
+        if base_destination in skip_destinations:
             total_skipped += 1
+            skipped_resume += 1
+            skipped_files.append(
+                SkippedFile(
+                    source=media.path,
+                    destination=base_destination,
+                    reason=SkipReason.RESUME,
+                )
+            )
             continue
+        # Fast duplicate heuristic: if destination exists and matches size+mtime, skip.
+        if base_destination.exists() and is_probable_duplicate(media.path, base_destination):
+            total_skipped += 1
+            skipped_duplicates += 1
+            skipped_files.append(
+                SkippedFile(
+                    source=media.path,
+                    destination=base_destination,
+                    reason=SkipReason.DUPLICATE,
+                )
+            )
+            continue
+        # Ensure a stable unique destination within this plan.
+        destination = unique_path(base_destination, taken_paths)
         copy_ops.append(
             PlannedOperation(
                 op_type=OperationType.COPY,
@@ -50,21 +88,30 @@ def build_plan(
         )
         total_files += 1
 
+    sorted_dirs = sorted(mkdirs)
     mkdir_ops = [
         PlannedOperation(
             op_type=OperationType.MKDIR,
             source=None,
             destination=directory,
         )
-        for directory in sorted(mkdirs)
+        for directory in sorted_dirs
+    ]
+    planned_dirs = [
+        PlannedDirectory(path=directory, exists=directory.exists())
+        for directory in sorted_dirs
     ]
 
     return Plan(
         operations=mkdir_ops + copy_ops,
+        directories=planned_dirs,
+        skipped_files=skipped_files,
         total_files=total_files,
         total_dirs=len(mkdirs),
         total_images=total_images,
         total_videos=total_videos,
         total_found=total_found,
         total_skipped=total_skipped,
+        skipped_resume=skipped_resume,
+        skipped_duplicates=skipped_duplicates,
     )

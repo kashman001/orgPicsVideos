@@ -25,9 +25,9 @@ The system is a desktop GUI application with a small core library that handles v
 2. UI validates paths via `validate_paths`.
 3. UI starts `ScanWorker` to run `scan_media` and `build_plan`.
    The scan emits live counts of images and videos found.
-4. UI presents scan summary and enables copy if applicable.
-5. UI starts `CopyWorker` to run `execute_plan` and emit progress/log updates plus live copy counts.
-6. `LogWriter` writes the header and each operation line to `<timestamp>.log`.
+4. UI presents scan summary, planned destination structure, and execution status tree; enables copy if applicable.
+5. UI starts `CopyWorker` to run `execute_plan` and emit progress/log updates plus live copy counts and per-operation status.
+6. `LogWriter` writes the header, scan summary, durations, resume details, and each operation line to `<timestamp>.log`.
 
 ## Concurrency
 
