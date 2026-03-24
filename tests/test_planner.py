@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from datetime import datetime
 from pathlib import Path
 
@@ -45,7 +46,7 @@ def test_build_plan_skips_duplicate(tmp_path: Path) -> None:
     media.path.write_bytes(b"abc")
     target.write_bytes(b"abc")
     mtime = media.path.stat().st_mtime
-    target.utime((mtime, mtime))
+    os.utime(target, (mtime, mtime))
 
     plan = build_plan([media], dest)
     assert plan.total_files == 0

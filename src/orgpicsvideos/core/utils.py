@@ -122,7 +122,7 @@ def is_probable_duplicate(source: Path, destination: Path) -> bool:
         return False
     return (
         src_stat.st_size == dst_stat.st_size
-        and src_stat.st_mtime_ns == dst_stat.st_mtime_ns
+        and abs(src_stat.st_mtime - dst_stat.st_mtime) < 1e-3
     )
 
 

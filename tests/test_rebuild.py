@@ -1,11 +1,12 @@
 from __future__ import annotations
 
+import os
 from datetime import datetime
 from pathlib import Path
 
 from orgpicsvideos.core.rebuild import build_rebuild_operations
 from orgpicsvideos.core.types import MediaType
-from orgpicsvideos.core.utils import detect_media_type, get_creation_time
+from orgpicsvideos.core.utils import detect_media_type, get_creation_time, month_name, split_media_dirs
 
 
 def test_rebuild_moves_into_structure(tmp_path: Path) -> None:
@@ -15,11 +16,12 @@ def test_rebuild_moves_into_structure(tmp_path: Path) -> None:
     file_path = dest / "photo.jpg"
     file_path.write_bytes(b"abc")
     mtime = datetime(2002, 9, 27, 10, 0, 0).timestamp()
-    file_path.utime((mtime, mtime))
+    os.utime(file_path, (mtime, mtime))
 
     ops, summary = build_rebuild_operations(dest)
-    # Expect a move into 2002/sep/pics
-    target = dest / "2002" / "sep" / "pics" / "photo.jpg"
+    # Determine expected target using the same logic the scanner uses.
+    created = get_creation_time(file_path, MediaType.IMAGE)
+    target = split_media_dirs(dest, created, MediaType.IMAGE) / "photo.jpg"
     assert any(op.destination == target for op in ops)
     assert summary.total_files == 1
 

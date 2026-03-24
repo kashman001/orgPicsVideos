@@ -10,10 +10,20 @@ from .types import MediaFile
 from .utils import detect_media_type, get_creation_time
 
 SKIP_DIR_NAMES = {
+    # macOS
     ".Spotlight-V100",
     ".fseventsd",
     ".TemporaryItems",
+    # Windows
     "System Volume Information",
+    "$RECYCLE.BIN",
+}
+
+# Files that should be silently skipped during scanning.
+SKIP_FILE_NAMES = {
+    ".DS_Store",       # macOS
+    "Thumbs.db",       # Windows thumbnail cache
+    "desktop.ini",     # Windows folder config
 }
 
 
@@ -47,7 +57,7 @@ def scan_media(
                         stack.append(Path(entry.path))
                     elif entry.is_file(follow_symlinks=False):
                         path = Path(entry.path)
-                        if path.name.startswith("._"):
+                        if path.name.startswith("._") or path.name in SKIP_FILE_NAMES:
                             continue
                         media_type = detect_media_type(path)
                         if not media_type:

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from datetime import datetime
 from pathlib import Path
 
@@ -37,6 +38,6 @@ def test_is_probable_duplicate(tmp_path: Path) -> None:
     dst.write_bytes(b"abc")
     # Align mtime for heuristic.
     mtime = src.stat().st_mtime
-    dst.utime((mtime, mtime))
+    os.utime(dst, (mtime, mtime))
 
     assert is_probable_duplicate(src, dst) is True

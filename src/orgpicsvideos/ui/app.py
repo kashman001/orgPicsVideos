@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import sys
 import time
 
 from PySide6 import QtCore, QtGui, QtWidgets
@@ -229,6 +230,8 @@ class MainWindow(QtWidgets.QMainWindow):
         self.debug_check.setChecked(False)
         self.keep_sidecars_check = QtWidgets.QCheckBox("Keep macOS ._ sidecar files")
         self.keep_sidecars_check.setChecked(False)
+        if sys.platform == "win32":
+            self.keep_sidecars_check.setVisible(False)
 
         self.stats_label = QtWidgets.QLabel(
             "Ready. Source must exist; destination can be selected or created."

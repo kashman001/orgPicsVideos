@@ -113,8 +113,8 @@ def _delete_empty_dirs(destination_root: Path, log_cb) -> int:  # type: ignore[n
     for root, dirs, files in os.walk(destination_root, topdown=False):
         if root == str(destination_root):
             continue
-        # Treat macOS metadata files as ignorable for emptiness checks.
-        ignorable = {".DS_Store"}
+        # Treat OS metadata files as ignorable for emptiness checks.
+        ignorable = {".DS_Store", "Thumbs.db", "desktop.ini"}
         path = Path(root)
         # Re-evaluate directory contents to avoid stale os.walk state.
         try:
@@ -122,7 +122,8 @@ def _delete_empty_dirs(destination_root: Path, log_cb) -> int:  # type: ignore[n
         except Exception:  # noqa: BLE001
             continue
         real_files = [
-            p for p in entries if p.is_file() and p.name not in ignorable and not p.name.startswith("._")
+            p for p in entries
+            if p.is_file() and p.name not in ignorable and not p.name.startswith("._")
         ]
         real_dirs = [p for p in entries if p.is_dir()]
         if real_files or real_dirs:
