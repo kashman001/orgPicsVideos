@@ -41,7 +41,7 @@ orgpicsvideos
 8. If files were found, click `Copy`.
 9. Watch `Files Copied - Pics` / `Videos` update live during copy, along with the progress bar, execution status tree, and log output.
 
-By default the tool deletes macOS `._` sidecar files in the destination during copy. Check `Keep macOS ._ sidecar files` to disable this.
+By default the tool deletes macOS `._` sidecar files in the destination during copy. Check `Keep macOS ._ sidecar files` to disable this. This option is hidden on Windows.
 
 ## Resume after a failure
 
@@ -98,6 +98,7 @@ Videos:
 - **No files found**: check file types and ensure you selected the correct source directory.
 - **Slow external drive scan**: enable `Enable debug log` to write `debug_<timestamp>.log` in the destination and identify where scans slow down.
 - **macOS sidecar files**: files starting with `._` are ignored by the scanner and won’t create folders on their own.
+- **Windows system files**: `Thumbs.db`, `desktop.ini`, and the `$RECYCLE.BIN` directory are skipped during scanning.
 
 ## Tips
 

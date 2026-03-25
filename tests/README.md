@@ -6,7 +6,7 @@
 - Video metadata heuristics (reasonable vs suspicious fallback).
 - Copy execution behavior (mkdir/copy log).
 - Planned/execution tree population (headless UI).
-- Optional GUI smoke test via pytest-qt.
+- GUI smoke tests via pytest-qt (marked with `@pytest.mark.ui`, run separately in CI).
 
 ## Current Gaps
 - Full end-to-end GUI interaction coverage (only a basic smoke test).
@@ -19,8 +19,8 @@ pip install -e .[test]
 pytest
 ```
 
-## Optional UI Smoke Tests
+## UI Tests
 ```
-pip install pytest-qt
-pytest -k ui_smoke
+pip install -e .[test]
+pytest -m ui
 ```

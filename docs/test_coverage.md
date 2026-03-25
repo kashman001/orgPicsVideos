@@ -22,3 +22,7 @@
 
 ## UI Tests
 - UI tests are marked with `@pytest.mark.ui` and run separately in CI.
+
+## CI
+- Tests run on both `ubuntu-latest` and `windows-latest` with `fail-fast: false`.
+- Linux runners install `libegl1` for PySide6 headless support.

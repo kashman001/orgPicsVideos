@@ -19,6 +19,8 @@ and copies them into an organized destination structure.
 - Image extensions: jpg, jpeg, png, gif, bmp, tif, tiff, heic, heif, webp, raw
 - Video extensions: mp4, mov, avi, mkv, m4v, wmv, flv, webm, mpeg, mpg, 3gp
 - Ignore macOS resource-fork sidecar files (names starting with `._`).
+- Ignore Windows system directories (`$RECYCLE.BIN`).
+- Ignore OS metadata files (`.DS_Store`, `Thumbs.db`, `desktop.ini`).
 
 ## 4) Timestamp Rules
 - Prefer media capture time (EXIF for images, container metadata for videos).
@@ -39,7 +41,7 @@ and copies them into an organized destination structure.
 - Use the same timestamp rules and duplicate heuristics as the main tool.
 - By default, delete macOS `._` sidecar files (option to keep them).
 - Optional flag to delete empty directories after rebuild.
-- Treat `.DS_Store` and `._*` as ignorable when determining empty directories.
+- Treat `.DS_Store`, `._*`, `Thumbs.db`, and `desktop.ini` as ignorable when determining empty directories.
 
 ## 5b) Cleanup Tool
 - Provide a CLI tool to delete files smaller than a configurable threshold (default 1KB).

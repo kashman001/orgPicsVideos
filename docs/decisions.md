@@ -4,7 +4,7 @@
 We prefer capture metadata (EXIF for images, container metadata for videos). Video metadata can be unreliable; if it's newer than the file mtime or in the future, it is ignored. For videos without reliable metadata, we prefer mtime over birthtime.
 
 ## Duplicate Handling
-We avoid overwriting by adding numeric suffixes to destination filenames. We skip a file if the destination name exists and size+mtime match (fast heuristic).
+We avoid overwriting by adding numeric suffixes to destination filenames. We skip a file if the destination name exists and size+mtime match within 1ms tolerance (fast heuristic, tolerant of NTFS timestamp rounding).
 
 ## Resume Behavior
 Resume is log-only for simplicity. The latest log is parsed, and only entries with SUCCESS are skipped. The log header must match source/destination to avoid cross-run confusion.
